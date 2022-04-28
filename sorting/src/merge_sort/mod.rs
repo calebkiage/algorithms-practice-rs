@@ -1,5 +1,5 @@
 // https://en.wikipedia.org/wiki/Merge_sort#Top-down_implementation
-fn top_down_merge_sort(input: &mut [i32], work: &mut [i32]) {
+pub fn top_down_merge_sort(input: &mut [i32], work: &mut [i32]) {
     copy(input, work, input.len());
     top_down_split_merge(input, work, 0, input.len());
 }
@@ -26,9 +26,46 @@ fn top_down_split_merge(input: &mut [i32], work: &mut [i32], start_idx: usize, e
     merge(work, input, start_idx, middle_idx, end_idx);
 }
 
+pub fn top_down_merge_sort_par(input: &mut [i32], work: &mut [i32]) {
+    copy(input, work, input.len());
+    top_down_split_merge_par(input, work);
+}
+
+// Split input[] into 2 runs, sort both runs into work[], merge both runs from work[] to input[]
+// start_idx is inclusive; end_idx is exclusive (input[end_idx] is not in the set).
+fn top_down_split_merge_par(input: &mut [i32], work: &mut [i32]) {
+    // base case: if run size == 1, consider the array sorted
+    if input.len() <= 1 {
+        return;
+    }
+
+    let start_idx = 0;
+    let end_idx = input.len();
+
+    // split the run longer than 1 item into halves
+    // iMiddle = mid point
+    let middle_idx = start_idx + ((end_idx - start_idx) / 2);
+
+    let (work_left_slice, work_right_slice) = work.split_at_mut(middle_idx);
+    let (input_left_slice, input_right_slice) = input.split_at_mut(middle_idx);
+    // recursively sort both runs from array input[] into work[]
+    // sort the left  run
+    rayon::join_context(
+        |_c| {
+            top_down_split_merge_par(work_left_slice, input_left_slice);
+        },
+        |_c| {
+            top_down_split_merge_par(work_right_slice, input_right_slice);
+        },
+    );
+
+    // merge the resulting runs from array work[] into input[]
+    merge(work, input, start_idx, middle_idx, end_idx);
+}
+
 // array input[] has the items to sort; array work[] is a work array
 // https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
-fn bottom_up_merge_sort(input: &mut [i32], work: &mut [i32]) {
+pub fn bottom_up_merge_sort(input: &mut [i32], work: &mut [i32]) {
     let length = input.len();
 
     // Each 1-element run in input is already "sorted".
@@ -156,6 +193,85 @@ mod test_merge_sort {
             top_down_merge_sort(&mut input, &mut work);
 
             assert_eq!(&[1, 2, 3, 4, 5, 6, 7, 8], &input);
+        }
+    }
+
+    mod test_top_down_merge_sort_par {
+        use super::super::top_down_merge_sort_par;
+
+        #[test]
+        fn test_empty_array() {
+            let mut src = [];
+            let mut work = [];
+
+            top_down_merge_sort_par(&mut src, &mut work);
+
+            assert!(src.is_empty())
+        }
+
+        #[test]
+        fn test_single_element_array() {
+            let mut src = [1];
+            let mut work = [0; 1];
+
+            top_down_merge_sort_par(&mut src, &mut work);
+
+            assert_eq!(1, src[0]);
+        }
+
+        #[test]
+        fn test_small_arrays() {
+            let mut input = [2, 1];
+            let mut work = [0; 2];
+
+            top_down_merge_sort_par(&mut input, &mut work);
+
+            assert_eq!(&[1, 2], &input);
+
+            let mut input = [4, 1, 2];
+            let mut work = [0; 3];
+
+            top_down_merge_sort_par(&mut input, &mut work);
+
+            assert_eq!(&[1, 2, 4], &input);
+
+            let mut input = [4, 1, 2, 5];
+            let mut work = [0; 4];
+
+            top_down_merge_sort_par(&mut input, &mut work);
+
+            assert_eq!(&[1, 2, 4, 5], &input);
+        }
+
+        #[test]
+        fn test_unsorted_array() {
+            let mut input = [2, 1, 10, 4, 4, 3, 7, 5];
+            let mut work = [0; 8];
+
+            top_down_merge_sort_par(&mut input, &mut work);
+
+            assert_eq!(&[1, 2, 3, 4, 4, 5, 7, 10], &input);
+        }
+
+        #[test]
+        fn test_reversed_array() {
+            let mut input = [8, 7, 6, 5, 4, 3, 2, 1];
+            let mut work = [0; 8];
+
+            top_down_merge_sort_par(&mut input, &mut work);
+
+            assert_eq!(&[1, 2, 3, 4, 5, 6, 7, 8], &input);
+        }
+
+        #[test]
+        fn test_large_array() {
+            let mut input = vec![0; 4_000_000_000];
+            let mut work = vec![0; input.len()];
+            input[0] = 10;
+
+            top_down_merge_sort_par(&mut input, &mut work);
+
+            assert_eq!(10, input[input.len() - 1]);
         }
     }
 
