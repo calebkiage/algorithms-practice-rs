@@ -1,3 +1,5 @@
+use rayon::ThreadPool;
+
 // https://en.wikipedia.org/wiki/Merge_sort#Top-down_implementation
 pub fn top_down_merge_sort(input: &mut [i32], work: &mut [i32]) {
     copy(input, work, input.len());
@@ -28,12 +30,20 @@ fn top_down_split_merge(input: &mut [i32], work: &mut [i32], start_idx: usize, e
 
 pub fn top_down_merge_sort_par(input: &mut [i32], work: &mut [i32]) {
     copy(input, work, input.len());
-    top_down_split_merge_par(input, work);
+    let result = rayon::ThreadPoolBuilder::new()
+        .num_threads(num_cpus::get() - 2)
+        .build();
+    match result {
+        Ok(pool) => {
+            top_down_split_merge_par(input, work, &pool);
+        }
+        Err(_) => {}
+    }
 }
 
 // Split input[] into 2 runs, sort both runs into work[], merge both runs from work[] to input[]
 // start_idx is inclusive; end_idx is exclusive (input[end_idx] is not in the set).
-fn top_down_split_merge_par(input: &mut [i32], work: &mut [i32]) {
+fn top_down_split_merge_par(input: &mut [i32], work: &mut [i32], pool: &ThreadPool) {
     // base case: if run size == 1, consider the array sorted
     if input.len() <= 1 {
         return;
@@ -50,14 +60,14 @@ fn top_down_split_merge_par(input: &mut [i32], work: &mut [i32]) {
     let (input_left_slice, input_right_slice) = input.split_at_mut(middle_idx);
     // recursively sort both runs from array input[] into work[]
     // sort the left  run
-    rayon::join_context(
-        |_c| {
-            top_down_split_merge_par(work_left_slice, input_left_slice);
-        },
-        |_c| {
-            top_down_split_merge_par(work_right_slice, input_right_slice);
-        },
-    );
+    pool.scope(|scope| {
+        scope.spawn(|_| {
+            top_down_split_merge_par(work_left_slice, input_left_slice, pool);
+        });
+        scope.spawn(|_| {
+            top_down_split_merge_par(work_right_slice, input_right_slice, pool);
+        });
+    });
 
     // merge the resulting runs from array work[] into input[]
     merge(work, input, start_idx, middle_idx, end_idx);
@@ -265,7 +275,7 @@ mod test_merge_sort {
 
         #[test]
         fn test_large_array() {
-            let mut input = vec![0; 4_000_000_000];
+            let mut input = vec![0; 40_000_000];
             let mut work = vec![0; input.len()];
             input[0] = 10;
 
