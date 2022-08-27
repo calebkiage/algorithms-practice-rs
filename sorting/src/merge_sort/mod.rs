@@ -33,11 +33,8 @@ pub fn top_down_merge_sort_par(input: &mut [i32], work: &mut [i32]) {
     let result = rayon::ThreadPoolBuilder::new()
         .num_threads(num_cpus::get() - 2)
         .build();
-    match result {
-        Ok(pool) => {
-            top_down_split_merge_par(input, work, &pool);
-        }
-        Err(_) => {}
+    if let Ok(pool) = result {
+        top_down_split_merge_par(input, work, &pool);
     }
 }
 
@@ -98,7 +95,7 @@ pub fn bottom_up_merge_sort(input: &mut [i32], work: &mut [i32]) {
             );
 
             // Same as i + 2 * width
-            i = i + width_x2;
+            i += width_x2;
         }
 
         // Now work array is full of runs of length 2*width.
