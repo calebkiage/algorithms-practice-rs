@@ -1,2 +1,2 @@
 [workspace]
-members = ["array-rotate", "sorting"]
+members = ["array-rotate", "mathematical", "sorting"]
