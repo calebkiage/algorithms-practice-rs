@@ -1,4 +1,4 @@
-fn rotate(array: &[i32], factor: i32) -> Vec<i32> {
+pub fn rotate(array: &[i32], factor: i32) -> Vec<i32> {
     let append = factor <= 0;
     let length: usize = array.len();
     if length < 1 {
@@ -8,7 +8,7 @@ fn rotate(array: &[i32], factor: i32) -> Vec<i32> {
     let mut f: usize = if factor < 0 { !factor + 1 } else { factor } as usize;
     f %= length;
     let mut response: Vec<i32> = Vec::with_capacity(length);
-    
+
     for i in 0..length {
         if append {
             if i < f {
@@ -22,7 +22,7 @@ fn rotate(array: &[i32], factor: i32) -> Vec<i32> {
             response.push(array[i + f - length]);
         }
     }
-    
+
     response
 }
 
