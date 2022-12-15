@@ -1,7 +1,37 @@
 pub mod math {
     use std::ops::{Rem, Sub};
 
-    trait Number<T>: Eq + Rem<Output=T> + Default + Copy {}
+    macro_rules! number_impl_float {
+        ($($a:ty),+) => {
+            $(
+                impl Numeric for $a {
+                    fn zero() -> Self {
+                        0.0
+                    }
+                }
+            )+
+        };
+    }
+    macro_rules! number_impl_integer {
+        ($($a:ty),+) => {
+            $(
+                impl Numeric for $a {
+                    fn zero() -> Self {
+                        0
+                    }
+                }
+            )+
+        };
+    }
+
+    pub trait Numeric:
+        Copy + PartialEq + PartialOrd + Rem<Output = Self> + Sub<Output = Self>
+    {
+        fn zero() -> Self;
+    }
+
+    number_impl_integer! {i8, i16, i32, i64, i128, u8, u16, u32, u64, u128}
+    number_impl_float! {f32, f64}
 
     /// Calculates the GCD of 2 numbers. (Euclidean algorithm)
     ///
@@ -19,22 +49,24 @@ pub mod math {
     ///
     /// # Failures
     /// If both a and b are 0, the function fails
-    pub fn gcd<'a, T: PartialEq + Rem<Output=T> + Default + Copy + PartialOrd + Sub<Output=T>>(a: T, b: T) -> Result<T, &'a str> {
-        if a == Default::default() && b == Default::default() {
+    pub fn gcd<'a, T: Numeric>(a: T, b: T) -> Result<T, &'a str> {
+        if a == T::zero() && b == T::zero() {
             return Err("values cannot be 0");
         }
 
         let x = gcd_loop(a, b);
 
-        return if a < Default::default() || b < Default::default() {
-            let zero: T = Default::default();
+        return if a < T::zero() || b < T::zero() {
+            let zero: T = T::zero();
             let neg_x = zero - x;
             Ok(max(x, neg_x))
-        } else { Ok(x) };
+        } else {
+            Ok(x)
+        };
     }
 
-    fn gcd_loop<T: PartialEq + Rem<Output=T> + Default + Copy>(mut x: T, mut y: T) -> T {
-        while y != Default::default() {
+    fn gcd_loop<T: Numeric>(mut x: T, mut y: T) -> T {
+        while y != T::zero() {
             let t = y;
 
             y = x % y;
@@ -45,11 +77,7 @@ pub mod math {
     }
 
     fn max<T: PartialOrd>(a: T, b: T) -> T {
-        return if a > b {
-            a
-        } else {
-            b
-        };
+        return if a > b { a } else { b };
     }
 }
 
