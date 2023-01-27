@@ -2,8 +2,15 @@
 name = "array-rotate"
 version = "0.1.0"
 authors = ["Caleb Kiage <caleb.kiage@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "array_rotate_benchmark"
+harness = false
