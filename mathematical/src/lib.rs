@@ -65,6 +65,7 @@ pub mod math {
         };
     }
 
+    #[inline]
     fn gcd_loop<T: Numeric>(mut x: T, mut y: T) -> T {
         while y != T::zero() {
             let t = y;
@@ -76,6 +77,7 @@ pub mod math {
         x
     }
 
+    #[inline]
     fn max<T: PartialOrd>(a: T, b: T) -> T {
         return if a > b { a } else { b };
     }
